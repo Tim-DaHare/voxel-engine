@@ -4,9 +4,15 @@
 
 // This is our VBO. Vertex Buffer Object. and it holds all of out vertices' positions
 float vertices[] = {
-	-0.5f, -0.5f, 0.0f,
-	 0.5f, -0.5f, 0.0f,
-	 0.0f,  0.5f, 0.0f
+	 0.5f,  0.5f, 0.0f,  // top right
+	 0.5f, -0.5f, 0.0f,  // bottom right
+	-0.5f, -0.5f, 0.0f,  // bottom left
+	-0.5f,  0.5f, 0.0f   // top left 
+};
+
+unsigned int indices[] = {  // note that we start from 0!
+	0, 1, 3,   // first triangle
+	1, 2, 3    // second triangle
 };
 
 const char* vertexShaderSource = "#version 330 core\n"
@@ -29,8 +35,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
 void OpenGLRenderer::run() {
 	createWindow();
-	createVertexBuffer();
 	setupShaders();
+	createVertexBuffer();
 	mainLoop();
 	cleanup();
 }
@@ -62,15 +68,29 @@ void OpenGLRenderer::createWindow() {
 }
 
 void OpenGLRenderer::createVertexBuffer() {
-	unsigned int vbo;
-	glGenBuffers(1, &vbo);
-
-	//unsigned int vao;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
+	glGenBuffers(1, &vbo);
+
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	glGenBuffers(1, &ebo);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	// Tell OpenGL how to interpret the vertices and indices arrays as shader attributes
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	// Since the VBO is still bound, this attribute is now bound to that VBO.
+	glEnableVertexAttribArray(0);
+
+	// Unbind the vertex buffer object
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	// Unbind the Vertex Array Object (Generally not needed)
+	glBindVertexArray(0);
 }
 
 void OpenGLRenderer::setupShaders() {
@@ -102,7 +122,6 @@ void OpenGLRenderer::setupShaders() {
 		throw std::runtime_error(infoLog);
 	}
 
-	//unsigned int shaderProgram;
 	shaderProgram = glCreateProgram();
 
 	glAttachShader(shaderProgram, vertexShader);
@@ -117,14 +136,8 @@ void OpenGLRenderer::setupShaders() {
 		throw std::runtime_error(infoLog);
 	}
 
-	//glUseProgram(shaderProgram);
-
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	// Since the VBO is still bound from the generateVertexBuffer method, this attribute is now bound to that VBO.
-	glEnableVertexAttribArray(0);
 }
 
 void OpenGLRenderer::mainLoop() {
@@ -132,13 +145,16 @@ void OpenGLRenderer::mainLoop() {
 	while (!glfwWindowShouldClose(window)) {
 		// TODO: Build input system
 
+		// Clear screen
 		glClearColor(0.2f, 0.3f, 0.3f, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		// Read from shaderProgram and Vertex Array Object
 		glUseProgram(shaderProgram);
 		glBindVertexArray(vao);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
-
+		
+		// Draw the data
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		
 		glfwPollEvents();
 		glfwSwapBuffers(window);
@@ -146,5 +162,9 @@ void OpenGLRenderer::mainLoop() {
 }
 
 void OpenGLRenderer::cleanup() {
+	glDeleteVertexArrays(1, &vao);
+	glDeleteBuffers(1, &vbo);
+	glDeleteBuffers(1, &ebo);
+
 	glfwTerminate();
 }
