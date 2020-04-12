@@ -7,8 +7,8 @@ class OpenGLRenderer {
 
 private:
     GLFWwindow* window;
-    unsigned int vao, vbo, ebo;
-    unsigned int shaderProgram;
+    unsigned int VAOs[2], VBOs[2], ebo;
+    unsigned int shaderPrograms[2];
 
     void createWindow();
     void createVertexBuffer();
