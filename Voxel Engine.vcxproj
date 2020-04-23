@@ -160,6 +160,9 @@
     <ClCompile Include="vulkan_renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="opengl_fragment.glsl" />
+    <None Include="opengl_fragment2.glsl" />
+    <None Include="opengl_vertex.glsl" />
     <None Include="scripts\compile-shaders.bat" />
     <None Include="shaders\shader.frag" />
     <None Include="shaders\shader.vert" />

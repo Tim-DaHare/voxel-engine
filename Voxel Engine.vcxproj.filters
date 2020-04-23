@@ -44,6 +44,15 @@
     <None Include="scripts\compile-shaders.bat">
       <Filter>Scripts</Filter>
     </None>
+    <None Include="opengl_vertex.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="opengl_fragment.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="opengl_fragment2.glsl">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vulkan_renderer.h">

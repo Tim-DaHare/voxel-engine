@@ -585,7 +585,7 @@ private:
 	}
 
 	static vector<char> readFile(const string& filename) {
-		ifstream file(filename, ios::binary | ios::ate);
+		ifstream file(filename, ios::ate);
 
 		if (!file.is_open()) {
 			throw runtime_error("Failed to open file: " + filename);

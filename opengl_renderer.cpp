@@ -1,11 +1,16 @@
-#include <iostream>
+#include <iostream>;
+#include <string>;
+#include <vector>;
+#include <fstream>;
+#include <sstream>;
 
 #include "opengl_renderer.h";
 
 float vertices[] = {
-	-0.9f, -0.5f, 0.0f,
-	-0.5f, 0.5f, 0.0f,
-	-0.1f, -0.5f, 0.0f,
+	// positions			// colors
+	-0.9f, -0.5f, 0.0f,		1.0f, 0.0f, 0.0f,
+	-0.5f, 0.5f, 0.0f,		0.0f, 1.0f, 0.0f,
+	-0.1f, -0.5f, 0.0f,		0.0f, 0.0f, 1.0f,
 };
 
 float vertices2[] = {
@@ -14,31 +19,27 @@ float vertices2[] = {
 	0.9f, -0.5f, 0.0f,
 };
 
-unsigned int indices[] = {  // note that we start from 0!
-	0, 1, 2,
-	//3, 4, 5
-};
+//unsigned int indices[] = {  // note that we start from 0!
+//	0, 1, 2,
+//	//3, 4, 5
+//};
 
-const char* vertexShaderSource = "#version 330 core\n"
-"layout (location = 0) in vec3 aPos;\n"
-"void main()\n"
-"{\n"
-"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-"}\0";
+const std::string fileContents(const std::string& filename) {
+	std::ifstream file(filename, std::ios::ate);
 
-const char* fragmentShaderSource = "#version 330 core\n"
-"out vec4 FragColor;\n"
-"void main()\n"
-"{\n"
-"   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-"}\0";
+	if (!file.is_open()) {
+		throw std::runtime_error("Failed to open file " + filename);
+	}
 
-const char* fragmentShaderSource2 = "#version 330 core\n"
-"out vec4 FragColor;\n"
-"void main()\n"
-"{\n"
-"   FragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);\n"
-"}\0";
+	size_t fileSize = static_cast<size_t>(file.tellg());
+	std::stringstream buffer;
+
+	file.seekg(0);
+	buffer << file.rdbuf();
+	file.close();
+
+	return buffer.str();
+}
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
@@ -95,10 +96,16 @@ void OpenGLRenderer::createVertexBuffer() {
 	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
+	std::cout << "Configure attr pointers" << std::endl;
+
 	// Tell OpenGL how to interpret the vertices and indices arrays as shader attributes
 	// Since the VBO is still bound, this attribute will now bind to that VBO.
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	// aPos vertex attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
+	// aColor vertex attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
 
 	// Unbind the vertex buffer object
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -120,29 +127,39 @@ void OpenGLRenderer::createVertexBuffer() {
 }
 
 void OpenGLRenderer::setupShaders() {
+
+	const std::string vertexShaderContent = fileContents("D:\\Projects\\GitRepos\\voxel-engine\\opengl_vertex.glsl");
+	const char* vertexCharPointer = vertexShaderContent.c_str();
+
+	const std::string fragmentShaderContent = fileContents("D:\\Projects\\GitRepos\\voxel-engine\\opengl_fragment.glsl");
+	const char* fragmentCharPointer = fragmentShaderContent.c_str();
+
+	const std::string fragment2ShaderContent = fileContents("D:\\Projects\\GitRepos\\voxel-engine\\opengl_fragment2.glsl");
+	const char* fragment2CharPointer = fragment2ShaderContent.c_str();
+
 	unsigned int vertexShader;
 	vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+	glShaderSource(vertexShader, 1, &vertexCharPointer, NULL);
 	glCompileShader(vertexShader);
 
 	int success;
+	char infoLog[512];
 
 	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
 	if (!success) {
-		char infoLog[512];
-
 		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+		std::cout << "Failed to compile vertex shader" << std::endl;
 		throw std::runtime_error(infoLog);
 	}
 
 	unsigned int fragmentShader;
 	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+	glShaderSource(fragmentShader, 1, &fragmentCharPointer, NULL);
 	glCompileShader(fragmentShader);
 
 	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
 	if (!success) {
-		char infoLog[512];
+		std::cout << "Failed to compile fragmentShader1" << std::endl;
 
 		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
 		throw std::runtime_error(infoLog);
@@ -156,9 +173,7 @@ void OpenGLRenderer::setupShaders() {
 
 	glGetProgramiv(shaderPrograms[0], GL_LINK_STATUS, &success);
 	if (!success) {
-		char infoLog[512];
 		glGetProgramInfoLog(shaderPrograms[0], 512, NULL, infoLog);
-
 		throw std::runtime_error(infoLog);
 	}
 
@@ -169,14 +184,13 @@ void OpenGLRenderer::setupShaders() {
 	shaderPrograms[1] = glCreateProgram();
 
 	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragmentShaderSource2, NULL);
+	glShaderSource(fragmentShader, 1, &fragment2CharPointer, NULL);
 	glCompileShader(fragmentShader);
 
 	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
 	if (!success) {
-		char infoLog[512];
 
-		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+		glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
 		throw std::runtime_error(infoLog);
 	}
 
@@ -186,7 +200,6 @@ void OpenGLRenderer::setupShaders() {
 
 	glGetProgramiv(shaderPrograms[1], GL_LINK_STATUS, &success);
 	if (!success) {
-		char infoLog[512];
 		glGetProgramInfoLog(shaderPrograms[1], 512, NULL, infoLog);
 
 		throw std::runtime_error(infoLog);
@@ -198,6 +211,8 @@ void OpenGLRenderer::setupShaders() {
 
 void OpenGLRenderer::mainLoop() {
 
+	std::cout << "start mainloop" << std::endl;
+
 	while (!glfwWindowShouldClose(window)) {
 		// TODO: Build input system
 
@@ -205,11 +220,22 @@ void OpenGLRenderer::mainLoop() {
 		glClearColor(0.2f, 0.3f, 0.3f, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		// Read from shaderProgram and Vertex Array Object
+		// Set shader uniform color value to interpolate to and from 0 to 1
+		//float time = glfwGetTime();
+		//float greenValue = sin((time) * 0.5f) + 0.5f;
+		//int ourColorUniformLocation = glGetUniformLocation(shaderPrograms[0], "ourColor");
+
+		// Use the shader program before actually updating it
 		glUseProgram(shaderPrograms[0]);
+
+		//glUniform4f(ourColorUniformLocation, 0.5f, greenValue, 0, 1.0f);
+
+		// Read from Vertex Array Object
 		glBindVertexArray(VAOs[0]);
+		// Draw first triangle
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
+		// Draw second triangle
 		glUseProgram(shaderPrograms[1]);
 		glBindVertexArray(VAOs[1]);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
