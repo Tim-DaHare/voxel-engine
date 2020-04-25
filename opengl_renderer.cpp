@@ -1,10 +1,10 @@
 #include <iostream>;
 #include <string>;
 #include <vector>;
-#include <fstream>;
-#include <sstream>;
 
 #include "opengl_renderer.h";
+
+#include "shader.h";
 
 float vertices[] = {
 	// positions			// colors
@@ -23,23 +23,6 @@ float vertices2[] = {
 //	0, 1, 2,
 //	//3, 4, 5
 //};
-
-const std::string fileContents(const std::string& filename) {
-	std::ifstream file(filename, std::ios::ate);
-
-	if (!file.is_open()) {
-		throw std::runtime_error("Failed to open file " + filename);
-	}
-
-	size_t fileSize = static_cast<size_t>(file.tellg());
-	std::stringstream buffer;
-
-	file.seekg(0);
-	buffer << file.rdbuf();
-	file.close();
-
-	return buffer.str();
-}
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
@@ -127,86 +110,18 @@ void OpenGLRenderer::createVertexBuffer() {
 }
 
 void OpenGLRenderer::setupShaders() {
+	const std::string vertexPath = "D:\\Projects\\GitRepos\\voxel-engine\\opengl_vertex.glsl";
+	const std::string fragmentPath = "D:\\Projects\\GitRepos\\voxel-engine\\opengl_fragment.glsl";
+	const std::string fragment2Path = "D:\\Projects\\GitRepos\\voxel-engine\\opengl_fragment2.glsl";
 
-	const std::string vertexShaderContent = fileContents("D:\\Projects\\GitRepos\\voxel-engine\\opengl_vertex.glsl");
-	const char* vertexCharPointer = vertexShaderContent.c_str();
+	Shader triangle1Shader;
+	triangle1Shader.load(vertexPath, fragmentPath);
 
-	const std::string fragmentShaderContent = fileContents("D:\\Projects\\GitRepos\\voxel-engine\\opengl_fragment.glsl");
-	const char* fragmentCharPointer = fragmentShaderContent.c_str();
+	Shader triangle2Shader;
+	triangle2Shader.load(vertexPath, fragment2Path);
 
-	const std::string fragment2ShaderContent = fileContents("D:\\Projects\\GitRepos\\voxel-engine\\opengl_fragment2.glsl");
-	const char* fragment2CharPointer = fragment2ShaderContent.c_str();
-
-	unsigned int vertexShader;
-	vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertexShader, 1, &vertexCharPointer, NULL);
-	glCompileShader(vertexShader);
-
-	int success;
-	char infoLog[512];
-
-	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-	if (!success) {
-		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-		std::cout << "Failed to compile vertex shader" << std::endl;
-		throw std::runtime_error(infoLog);
-	}
-
-	unsigned int fragmentShader;
-	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragmentCharPointer, NULL);
-	glCompileShader(fragmentShader);
-
-	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-	if (!success) {
-		std::cout << "Failed to compile fragmentShader1" << std::endl;
-
-		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-		throw std::runtime_error(infoLog);
-	}
-
-	shaderPrograms[0] = glCreateProgram();
-
-	glAttachShader(shaderPrograms[0], vertexShader);
-	glAttachShader(shaderPrograms[0], fragmentShader);
-	glLinkProgram(shaderPrograms[0]);
-
-	glGetProgramiv(shaderPrograms[0], GL_LINK_STATUS, &success);
-	if (!success) {
-		glGetProgramInfoLog(shaderPrograms[0], 512, NULL, infoLog);
-		throw std::runtime_error(infoLog);
-	}
-
-	//glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
-
-	// Yellow color shader
-	shaderPrograms[1] = glCreateProgram();
-
-	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragment2CharPointer, NULL);
-	glCompileShader(fragmentShader);
-
-	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-	if (!success) {
-
-		glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-		throw std::runtime_error(infoLog);
-	}
-
-	glAttachShader(shaderPrograms[1], vertexShader);
-	glAttachShader(shaderPrograms[1], fragmentShader);
-	glLinkProgram(shaderPrograms[1]);
-
-	glGetProgramiv(shaderPrograms[1], GL_LINK_STATUS, &success);
-	if (!success) {
-		glGetProgramInfoLog(shaderPrograms[1], 512, NULL, infoLog);
-
-		throw std::runtime_error(infoLog);
-	}
-
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
+	shaderPrograms[0] = triangle1Shader;
+	shaderPrograms[1] = triangle2Shader;
 }
 
 void OpenGLRenderer::mainLoop() {
@@ -226,7 +141,7 @@ void OpenGLRenderer::mainLoop() {
 		//int ourColorUniformLocation = glGetUniformLocation(shaderPrograms[0], "ourColor");
 
 		// Use the shader program before actually updating it
-		glUseProgram(shaderPrograms[0]);
+		shaderPrograms[0].use();
 
 		//glUniform4f(ourColorUniformLocation, 0.5f, greenValue, 0, 1.0f);
 
@@ -236,7 +151,7 @@ void OpenGLRenderer::mainLoop() {
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		// Draw second triangle
-		glUseProgram(shaderPrograms[1]);
+		shaderPrograms[1].use();
 		glBindVertexArray(VAOs[1]);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 

@@ -3,12 +3,14 @@
 #include <glad/glad.h>;
 #include <GLFW/glfw3.h>;
 
+#include "shader.h";
+
 class OpenGLRenderer {
 
 private:
     GLFWwindow* window;
     unsigned int VAOs[2], VBOs[2], ebo;
-    unsigned int shaderPrograms[2];
+    Shader shaderPrograms[2];
 
     void createWindow();
     void createVertexBuffer();

@@ -157,6 +157,7 @@
     <ClCompile Include="..\..\..\Documenten\Downloads\glad\src\glad.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="opengl_renderer.cpp" />
+    <ClCompile Include="shader.cpp" />
     <ClCompile Include="vulkan_renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -169,6 +170,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="opengl_renderer.h" />
+    <ClInclude Include="shader.h" />
     <ClInclude Include="vulkan_renderer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
