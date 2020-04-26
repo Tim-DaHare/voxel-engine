@@ -46,7 +46,7 @@ void Shader::load(const std::string& vertexPath, const std::string& fragmentPath
 
 	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
 	if (!success) {
-		std::cout << "Failed to compile fragmentShader1" << std::endl;
+		std::cout << "Failed to compile fragmentShader" << std::endl;
 
 		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
 		throw std::runtime_error(infoLog);
@@ -60,6 +60,8 @@ void Shader::load(const std::string& vertexPath, const std::string& fragmentPath
 
 	glGetProgramiv(programId, GL_LINK_STATUS, &success);
 	if (!success) {
+		std::cout << "Failed to link shaderProgram" << std::endl;
+
 		glGetProgramInfoLog(programId, 512, NULL, infoLog);
 		throw std::runtime_error(infoLog);
 	}

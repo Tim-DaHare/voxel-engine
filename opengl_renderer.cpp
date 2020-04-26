@@ -2,16 +2,24 @@
 #include <string>;
 #include <vector>;
 
-#include "opengl_renderer.h";
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
+#include "opengl_renderer.h";
 #include "shader.h";
 
 float vertices[] = {
-	// positions			// colors
-	-0.9f, -0.5f, 0.0f,		1.0f, 0.0f, 0.0f,
-	-0.5f, 0.5f, 0.0f,		0.0f, 1.0f, 0.0f,
-	-0.1f, -0.5f, 0.0f,		0.0f, 0.0f, 1.0f,
+	// positions			// colors			// texture coords
+	-0.9f, -0.5f, 0.0f,		1.0f, 0.0f, 0.0f,	0.0f, 0.0f,
+	-0.5f, 0.5f, 0.0f,		0.0f, 1.0f, 0.0f,	0.5f, 1.0f,
+	-0.1f, -0.5f, 0.0f,		0.0f, 0.0f, 1.0f,	1.0f, 0.0f
 };
+
+//float texCoords[] = {
+//	0.0f, 0.0f,  // lower-left corner
+//	1.0f, 0.0f,  // lower-right corner
+//	0.5f, 1.0f   // top-center corner
+//};
 
 float vertices2[] = {
 	0.1f, -0.5f, 0.0f,
@@ -32,6 +40,7 @@ void OpenGLRenderer::run() {
 	createWindow();
 	setupShaders();
 	createVertexBuffer();
+	loadTexture();
 	mainLoop();
 	cleanup();
 }
@@ -84,29 +93,32 @@ void OpenGLRenderer::createVertexBuffer() {
 	// Tell OpenGL how to interpret the vertices and indices arrays as shader attributes
 	// Since the VBO is still bound, this attribute will now bind to that VBO.
 	// aPos vertex attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 	// aColor vertex attribute
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
+	// aTexCoord vertex attribute
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
 
 	// Unbind the vertex buffer object
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	//glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	// Second Triangle
-	glBindVertexArray(VAOs[1]);
+	//// Second Triangle
+	//glBindVertexArray(VAOs[1]);
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);
+	//glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
+	//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	//glEnableVertexAttribArray(0);
 
-	// Unbind the vertex buffer object
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	//// Unbind the vertex buffer object
+	//glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	// Unbind the Vertex Array Object (Generally not needed)
-	glBindVertexArray(0);
+	//// Unbind the Vertex Array Object (Generally not needed)
+	//glBindVertexArray(0);
 }
 
 void OpenGLRenderer::setupShaders() {
@@ -124,6 +136,37 @@ void OpenGLRenderer::setupShaders() {
 	shaderPrograms[1] = triangle2Shader;
 }
 
+void OpenGLRenderer::loadTexture() {
+	
+	//unsigned int textureId;
+	glGenTextures(1, &textureId);
+	glBindTexture(GL_TEXTURE_2D, textureId);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	// set texture filtering parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	int width, height, channelCount;
+	unsigned char* data = stbi_load("D:\\Projects\\GitRepos\\voxel-engine\\Assets\\textures\\wall.jpg", &width, &height, &channelCount, 0);
+
+	if (!data) {
+		stbi_image_free(data);
+
+		throw std::runtime_error("Failed to generate texture");
+	}
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// free the memory where the image is loaded in.
+	stbi_image_free(data);
+
+	shaderPrograms[0].use();
+	glUniform1i(glGetUniformLocation(shaderPrograms[0].programId, "textureData"), 0);
+}
+
 void OpenGLRenderer::mainLoop() {
 
 	std::cout << "start mainloop" << std::endl;
@@ -135,25 +178,29 @@ void OpenGLRenderer::mainLoop() {
 		glClearColor(0.2f, 0.3f, 0.3f, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		// Set shader uniform color value to interpolate to and from 0 to 1
-		//float time = glfwGetTime();
-		//float greenValue = sin((time) * 0.5f) + 0.5f;
-		//int ourColorUniformLocation = glGetUniformLocation(shaderPrograms[0], "ourColor");
+		// Set shader uniform horizontal offset value to interpolate to and from 0 to 1
+		float time = glfwGetTime();
+		float horizontalOffset = sin((time) * 0.5f) + 0.5f;
+		int ourColorUniformLocation = glGetUniformLocation(shaderPrograms[0].programId, "horizontalOffset");
+
+		// Bind texture so it will be assigned to the fragment shader's sampler
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, textureId);
 
 		// Use the shader program before actually updating it
 		shaderPrograms[0].use();
+		glUniform1f(ourColorUniformLocation, horizontalOffset);
 
-		//glUniform4f(ourColorUniformLocation, 0.5f, greenValue, 0, 1.0f);
-
+		
 		// Read from Vertex Array Object
 		glBindVertexArray(VAOs[0]);
 		// Draw first triangle
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		// Draw second triangle
-		shaderPrograms[1].use();
-		glBindVertexArray(VAOs[1]);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		//shaderPrograms[1].use();
+		//glBindVertexArray(VAOs[1]);
+		//glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		// Draw the data
 		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);

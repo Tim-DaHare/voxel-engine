@@ -11,9 +11,11 @@ private:
     GLFWwindow* window;
     unsigned int VAOs[2], VBOs[2], ebo;
     Shader shaderPrograms[2];
+    unsigned int textureId;
 
     void createWindow();
     void createVertexBuffer();
+    void loadTexture();
     void setupShaders();
     void mainLoop();
     void cleanup();
