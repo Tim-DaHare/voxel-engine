@@ -15,12 +15,6 @@ float vertices[] = {
 	-0.1f, -0.5f, 0.0f,		0.0f, 0.0f, 1.0f,	1.0f, 0.0f
 };
 
-//float texCoords[] = {
-//	0.0f, 0.0f,  // lower-left corner
-//	1.0f, 0.0f,  // lower-right corner
-//	0.5f, 1.0f   // top-center corner
-//};
-
 float vertices2[] = {
 	0.1f, -0.5f, 0.0f,
 	0.5f, 0.5f, 0.0f,
@@ -137,16 +131,18 @@ void OpenGLRenderer::setupShaders() {
 }
 
 void OpenGLRenderer::loadTexture() {
-	
+
+	stbi_set_flip_vertically_on_load(true);
+
 	//unsigned int textureId;
-	glGenTextures(1, &textureId);
-	glBindTexture(GL_TEXTURE_2D, textureId);
+	glGenTextures(1, &textureIds[0]);
+	glBindTexture(GL_TEXTURE_2D, textureIds[0]);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	// set texture filtering parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	int width, height, channelCount;
 	unsigned char* data = stbi_load("D:\\Projects\\GitRepos\\voxel-engine\\Assets\\textures\\wall.jpg", &width, &height, &channelCount, 0);
@@ -165,6 +161,37 @@ void OpenGLRenderer::loadTexture() {
 
 	shaderPrograms[0].use();
 	glUniform1i(glGetUniformLocation(shaderPrograms[0].programId, "textureData"), 0);
+
+	glGenTextures(1, &textureIds[1]);
+	glBindTexture(GL_TEXTURE_2D, textureIds[1]);
+
+	// set texture wrapping to GL_REPEAT (default wrapping method)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	
+	// set texture filtering parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	//float borderColor[] = { 1.0f, 1.0f, 0.0f, 1.0f };
+	//glTextureParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	data = stbi_load("D:\\Projects\\GitRepos\\voxel-engine\\Assets\\textures\\awesomeface.png", &width, &height, &channelCount, 0);
+
+	if (!data) {
+		stbi_image_free(data);
+
+		throw std::runtime_error("Failed to generate texture");
+	}
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	shaderPrograms[0].use();
+	glUniform1i(glGetUniformLocation(shaderPrograms[0].programId, "textureData2"), 1);
+
+	stbi_image_free(data);
+
 }
 
 void OpenGLRenderer::mainLoop() {
@@ -180,18 +207,22 @@ void OpenGLRenderer::mainLoop() {
 
 		// Set shader uniform horizontal offset value to interpolate to and from 0 to 1
 		float time = glfwGetTime();
-		float horizontalOffset = sin((time) * 0.5f) + 0.5f;
+		float horizontalOffset = (sin(time) * 0.5f) + 0.5f;
+		std::cout << horizontalOffset << std::endl;
 		int ourColorUniformLocation = glGetUniformLocation(shaderPrograms[0].programId, "horizontalOffset");
+		int opacityUniformLocation = glGetUniformLocation(shaderPrograms[0].programId, "opacity");
 
 		// Bind texture so it will be assigned to the fragment shader's sampler
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, textureId);
+		glBindTexture(GL_TEXTURE_2D, textureIds[0]);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, textureIds[1]);
 
 		// Use the shader program before actually updating it
 		shaderPrograms[0].use();
 		glUniform1f(ourColorUniformLocation, horizontalOffset);
+		glUniform1f(opacityUniformLocation, horizontalOffset);
 
-		
 		// Read from Vertex Array Object
 		glBindVertexArray(VAOs[0]);
 		// Draw first triangle

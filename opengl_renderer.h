@@ -11,7 +11,7 @@ private:
     GLFWwindow* window;
     unsigned int VAOs[2], VBOs[2], ebo;
     Shader shaderPrograms[2];
-    unsigned int textureId;
+    unsigned int textureIds[2];
 
     void createWindow();
     void createVertexBuffer();
